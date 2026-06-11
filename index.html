@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>The Street Chef – Premium Receipt Generator</title>
+
+  <!-- html2canvas: converts HTML to image (PNG export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- jsPDF: converts HTML to PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* =============================================
+       DESIGN TOKENS — THE STREET CHEF BRAND
+    ============================================= */
+    :root {
+      --brand-green:      #005a32;     /* Deep Green */
+      --brand-yellow:     #FFD700;     /* Warm Yellow */
+      --brand-cream:      #fdf6b2;     /* Cream background */
+      --brand-dark:       #1a1a1a;     /* Dark text */
+      --brand-light:      #ffffff;     /* White */
+      --accent-red:       #d32f2f;     /* For prices/highlights */
+      --text-muted:       #666666;
+      --border-color:     #e0e0e0;
+      --radius:           12px;
+      --font-display:     'Playfair Display', 'Georgia', serif;
+      --font-body:        'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* =============================================
+       RESET & BASE
+    ============================================= */
+    *, *::before, *::after { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: linear-gradient(135deg, #f5f5f5 0%, #efefef 100%);
+      color: var(--brand-dark);
+      min-height: 100vh;
+      padding: 0 0 100px;
+    }
+
+    /* =============================================
+       APP HEADER — PREMIUM BRANDING
+    ============================================= */
+    .app-header {
+      background: linear-gradient(135deg, var(--brand-green) 0%, #004a28 100%);
+      color: var(--brand-light);
+      padding: 24px 20px 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 16px rgba(0, 90, 50, 0.3);
+    }
+
+    .app-header .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .app-header .logo-img {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--brand-cream);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .app-header .logo-img img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .app-header h1 {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .app-header h1 span { 
+      color: var(--brand-yellow); 
+      font-style: italic;
+    }
+
+    .app-header .tagline {
+      font-size: 12px;
+      color: var(--brand-cream);
+      margin-top: 6px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .app-header .concept {
+      font-size: 11px;
+      color: #bbb;
+      margin-top: 2px;
+      letter-spacing: 1px;
+    }
+
+    /* =============================================
+       CARD CONTAINER
+    ============================================= */
+    .card {
+      background: var(--brand-light);
+      border-radius: var(--radius);
+      padding: 22px;
+      margin: 18px 14px 0;
+      box-shadow: 0 2px 12px rgba(0, 90, 50, 0.08);
+      border-left: 5px solid var(--brand-yellow);
+    }
+
+    .card h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-green);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid var(--brand-yellow);
+      padding-bottom: 10px;
+    }
+
+    /* =============================================
+       FORM ELEMENTS
+    ============================================= */
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand-green);
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="tel"] {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: var(--font-body);
+      background: #fafafa;
+      transition: all 0.3s ease;
+      -webkit-appearance: none;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--brand-green);
+      background: var(--brand-light);
+      box-shadow: 0 0 0 3px rgba(0, 90, 50, 0.1);
+    }
+
+    .field { 
+      margin-bottom: 16px; 
+    }
+
+    /* =============================================
+       ITEM ROWS
+    ============================================= */
+    .items-list { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px; 
+    }
+
+    .item-row {
+      display: grid;
+      grid-template-columns: 1fr 100px 45px;
+      gap: 10px;
+      align-items: center;
+      background: linear-gradient(135deg, var(--brand-cream) 0%, #fff9e6 100%);
+      border: 2px solid var(--brand-yellow);
+      border-radius: 10px;
+      padding: 12px 14px;
+      transition: all 0.2s ease;
+    }
+
+    .item-row:hover {
+      box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+    }
+
+    .item-row input { 
+      background: var(--brand-light); 
+      margin: 0;
+      border: 1.5px solid #e0e0e0;
+    }
+
+    .item-row input[type="number"] { 
+      text-align: right; 
+    }
+
+    .btn-remove {
+      background: #fee2e2;
+      color: #dc2626;
+      border: none;
+      border-radius: 8px;
+      width: 45px;
+      height: 45px;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      font-weight: bold;
+    }
+
+    .btn-remove:hover {
+      background: #fca5a5;
+      transform: scale(1.05);
+    }
+
+    .btn-remove:active { 
+      background: #f87171;
+      transform: scale(0.95);
+    }
+
+    .btn-add-item {
+      width: 100%;
+      margin-top: 14px;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--brand-green) 0%, #004a28 100%);
+      border: 2px dashed var(--brand-yellow);
+      border-radius: 10px;
+      color: var(--brand-light);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-add-item:hover {
+      background: linear-gradient(135deg, #004a28 0%, var(--brand-green) 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 90, 50, 0.2);
+    }
+
+    .btn-add-item:active { 
+      transform: translateY(0);
+    }
+
+    /* =============================================
+       TOTALS
+    ============================================= */
+    .totals-box {
+      background: linear-gradient(135deg, var(--brand-green) 0%, #004a28 100%);
+      border-radius: 10px;
+      padding: 18px;
+      color: var(--brand-light);
+      margin-top: 16px;
+      box-shadow: 0 4px 12px rgba(0, 90, 50, 0.2);
+    }
+
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: 6px 0;
+      font-weight: 500;
+    }
+
+    .totals-row.grand {
+      border-top: 2px solid rgba(255, 215, 0, 0.3);
+      margin-top: 12px;
+      padding-top: 12px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .totals-row.grand span:last-child { 
+      color: var(--brand-yellow);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    /* =============================================
+       ACTION BUTTONS
+    ============================================= */
+    .actions { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px; 
+      margin-top: 8px; 
+      padding: 0 14px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    .btn:active { 
+      transform: translateY(0);
+    }
+
+    .btn-preview  { 
+      background: linear-gradient(135deg, var(--brand-green) 0%, #004a28 100%);
+      color: var(--brand-light);
+    }
+
+    .btn-pdf      { 
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+      color: var(--brand-light);
+    }
+
+    .btn-png      { 
+      background: linear-gradient(135deg, #166534 0%, #0d4620 100%);
+      color: var(--brand-light);
+    }
+
+    .btn-whatsapp { 
+      background: linear-gradient(135deg, #25d366 0%, #1da851 100%);
+      color: var(--brand-light);
+    }
+
+    .btn-reset    { 
+      background: var(--brand-cream);
+      color: var(--brand-green);
+      border: 2px solid var(--brand-yellow);
+      font-weight: 700;
+    }
+
+    /* =============================================
+       RECEIPT PREVIEW MODAL
+    ============================================= */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 200;
+      overflow-y: auto;
+      padding: 20px 12px 40px;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open { 
+      display: block; 
+    }
+
+    .modal-close {
+      position: sticky;
+      top: 0;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      z-index: 10;
+      margin-bottom: 12px;
+    }
+
+    .modal-close button {
+      background: var(--brand-light);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: all 0.2s ease;
+      color: var(--brand-green);
+      font-weight: bold;
+    }
+
+    .modal-close button:hover {
+      background: var(--brand-yellow);
+      transform: scale(1.1);
+    }
+
+    /* =============================================
+       RECEIPT PAPER (for preview + export)
+    ============================================= */
+    #receipt-paper {
+      background: var(--brand-light);
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 32px 28px;
+      border-radius: 6px;
+      box-shadow: 0 8px 32px rgba(0, 90, 50, 0.25);
+      font-family: var(--font-body);
+      border: 3px solid var(--brand-green);
+    }
+
+    .receipt-header { 
+      text-align: center; 
+      margin-bottom: 24px;
+      border-bottom: 3px solid var(--brand-yellow);
+      padding-bottom: 16px;
+    }
+
+    .receipt-logo-area {
+      width: 80px;
+      height: 80px;
+      background: var(--brand-green);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      overflow: hidden;
+      border: 3px solid var(--brand-yellow);
+      box-shadow: 0 4px 12px rgba(0, 90, 50, 0.2);
+    }
+
+    .receipt-logo-area img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .receipt-biz-name {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--brand-green);
+    }
+
+    .receipt-biz-name span { 
+      color: var(--brand-yellow);
+      font-style: italic;
+    }
+
+    .receipt-concept {
+      font-size: 12px;
+      color: var(--brand-green);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 4px;
+      font-weight: 700;
+    }
+
+    .receipt-tagline {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
+    .receipt-divider {
+      border: none;
+      border-top: 2px dashed var(--brand-yellow);
+      margin: 16px 0;
+    }
+
+    .receipt-contact {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+
+    .receipt-contact strong {
+      color: var(--brand-green);
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .receipt-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .receipt-meta strong { 
+      color: var(--brand-green);
+      font-weight: 700;
+    }
+
+    .receipt-customer {
+      font-size: 13px;
+      margin: 12px 0 0;
+      padding: 10px;
+      background: linear-gradient(135deg, var(--brand-cream) 0%, #fff9e6 100%);
+      border-left: 3px solid var(--brand-yellow);
+      border-radius: 4px;
+    }
+
+    .receipt-customer strong { 
+      color: var(--brand-green);
+      font-weight: 700;
+    }
+
+    /* Items table */
+    .receipt-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 16px 0 12px;
+    }
+
+    .receipt-table thead tr {
+      background: var(--brand-green);
+      color: var(--brand-light);
+    }
+
+    .receipt-table thead th {
+      padding: 10px 8px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 700;
+    }
+
+    .receipt-table thead th:last-child { 
+      text-align: right; 
+    }
+
+    .receipt-table tbody tr:nth-child(even) { 
+      background: linear-gradient(135deg, var(--brand-cream) 0%, #fff9e6 100%);
+    }
+
+    .receipt-table tbody tr:nth-child(odd) { 
+      background: var(--brand-light);
+    }
+
+    .receipt-table tbody td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .receipt-table tbody td:last-child { 
+      text-align: right; 
+      font-weight: 700;
+      color: var(--brand-green);
+    }
+
+    /* Totals section */
+    .receipt-totals { 
+      margin-top: 8px; 
+    }
+
+    .receipt-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 5px 0;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .receipt-total-row.grand-total {
+      background: linear-gradient(135deg, var(--brand-green) 0%, #004a28 100%);
+      color: var(--brand-light);
+      padding: 14px 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .receipt-total-row.grand-total span:last-child { 
+      color: var(--brand-yellow);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .receipt-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.8;
+      border-top: 2px dashed var(--brand-yellow);
+      padding-top: 12px;
+    }
+
+    .receipt-footer strong { 
+      color: var(--brand-green); 
+      display: block; 
+      font-size: 12px; 
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .receipt-footer .thank-you {
+      font-style: italic;
+      color: var(--brand-green);
+      font-weight: 700;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    /* Modal export buttons */
+    .modal-actions {
+      max-width: 400px;
+      margin: 18px auto 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* =============================================
+       TOAST NOTIFICATION
+    ============================================= */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: var(--brand-green);
+      color: var(--brand-light);
+      padding: 14px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 700;
+      z-index: 9999;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 90, 50, 0.3);
+      letter-spacing: 0.5px;
+    }
+
+    .toast.show { 
+      transform: translateX(-50%) translateY(0); 
+    }
+
+    /* =============================================
+       LOADING SPINNER (for PDF/PNG export)
+    ============================================= */
+    .spinner-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 9000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: var(--brand-light);
+      font-size: 14px;
+      gap: 14px;
+      backdrop-filter: blur(4px);
+    }
+
+    .spinner-overlay.show { 
+      display: flex; 
+    }
+
+    .spinner {
+      width: 48px; 
+      height: 48px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: var(--brand-yellow);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
+    }
+
+    /* =============================================
+       UTILITY
+    ============================================= */
+    .sr-only { 
+      position: absolute; 
+      width: 1px; 
+      height: 1px; 
+      overflow: hidden; 
+      clip: rect(0,0,0,0); 
+    }
+
+    /* =============================================
+       RESPONSIVE
+    ============================================= */
+    @media (max-width: 480px) {
+      .app-header h1 {
+        font-size: 24px;
+      }
+
+      .card {
+        margin: 14px 10px 0;
+        padding: 16px;
+      }
+
+      .btn {
+        padding: 14px;
+        font-size: 14px;
+      }
+
+      #receipt-paper {
+        max-width: 100%;
+        padding: 24px 20px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- =============================================
+     APP HEADER
+============================================= -->
+<header class="app-header">
+  <div class="logo-row">
+    <div class="logo-img">
+      <img src="logo.jpg" alt="The Street Chef Logo" />
+    </div>
+    <div>
+      <h1>The Street <span>Chef</span></h1>
+      <div class="concept">Ukodoman & Grills</div>
+    </div>
+  </div>
+  <div class="tagline">Premium Receipt Generator</div>
+</header>
+
+<!-- =============================================
+     FORM SECTION
+============================================= -->
+<main>
+
+  <!-- Customer Info -->
+  <div class="card">
+    <h2>👤 Customer Details</h2>
+    <div class="field">
+      <label for="customer-phone">📱 Phone Number</label>
+      <input type="tel" id="customer-phone" placeholder="e.g. 0800 000 0000" inputmode="tel" />
+    </div>
+    <div class="field">
+      <label for="customer-name">👥 Customer Name (Optional)</label>
+      <input type="text" id="customer-name" placeholder="e.g. John Doe" />
+    </div>
+  </div>
+
+  <!-- Order Items -->
+  <div class="card">
+    <h2>🍽️ Order Items</h2>
+    <div class="items-list" id="items-list">
+      <!-- rows injected by JS -->
+    </div>
+    <button class="btn-add-item" id="btn-add-item" onclick="addItem()">
+      <span>➕</span> Add Item
+    </button>
+  </div>
+
+  <!-- Totals -->
+  <div class="card">
+    <h2>💰 Order Summary</h2>
+    <div class="totals-box">
+      <div class="totals-row">
+        <span>Subtotal</span>
+        <span id="subtotal-display">₦0.00</span>
+      </div>
+      <div class="totals-row">
+        <span>Items</span>
+        <span id="item-count-display">0</span>
+      </div>
+      <div class="totals-row">
+        <span>Tax (0%)</span>
+        <span id="tax-display">₦0.00</span>
+      </div>
+      <div class="totals-row grand">
+        <span>Total</span>
+        <span id="grand-total-display">₦0.00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="actions">
+    <button class="btn btn-preview" id="btn-preview" onclick="previewReceipt()">
+      👁️ Preview Receipt
+    </button>
+    <button class="btn btn-pdf" id="btn-pdf" onclick="exportPDF()">
+      📄 Download PDF
+    </button>
+    <button class="btn btn-png" id="btn-png" onclick="exportPNG()">
+      🖼️ Download Image
+    </button>
+    <button class="btn btn-whatsapp" id="btn-whatsapp" onclick="shareWhatsApp()">
+      💬 Share via WhatsApp
+    </button>
+    <button class="btn btn-reset" id="btn-reset" onclick="resetForm()">
+      🔄 Clear All
+    </button>
+  </div>
+
+</main>
+
+<!-- =============================================
+     RECEIPT PREVIEW MODAL
+============================================= -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-close">
+    <button onclick="closeModal()">✕</button>
+  </div>
+
+  <div id="receipt-paper">
+    <div class="receipt-header">
+      <div class="receipt-logo-area">
+        <img src="logo.jpg" alt="The Street Chef Logo" />
+      </div>
+      <div class="receipt-biz-name">The Street <span>Chef</span></div>
+      <div class="receipt-concept">Ukodoman & Grills</div>
+      <div class="receipt-tagline">Premium Food Experience</div>
+    </div>
+
+    <div class="receipt-contact">
+      <strong>📍 Location</strong>
+      No 4 Kanabe Close, Off Ekenwan Road<br>
+      Benin City, Edo State, Nigeria
+      <strong style="margin-top: 8px;">📞 Contact</strong>
+      WhatsApp/Call: +234 806 610 0419
+    </div>
+
+    <hr class="receipt-divider" />
+
+    <div class="receipt-meta">
+      <span><strong>Receipt #:</strong> <span id="receipt-id">0001</span></span>
+      <span><strong>Date:</strong> <span id="receipt-date">--/--/--</span></span>
+    </div>
+
+    <div class="receipt-customer">
+      <strong>Customer:</strong> <span id="receipt-customer-name">Walk-in</span><br>
+      <strong>Phone:</strong> <span id="receipt-customer-phone">N/A</span>
+    </div>
+
+    <hr class="receipt-divider" />
+
+    <table class="receipt-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody id="receipt-items-tbody">
+        <!-- rows injected by JS -->
+      </tbody>
+    </table>
+
+    <div class="receipt-totals">
+      <div class="receipt-total-row">
+        <span>Subtotal</span>
+        <span id="receipt-subtotal">₦0.00</span>
+      </div>
+      <div class="receipt-total-row">
+        <span>Tax (0%)</span>
+        <span id="receipt-tax">₦0.00</span>
+      </div>
+      <div class="receipt-total-row grand-total">
+        <span>Grand Total</span>
+        <span id="receipt-grand-total">₦0.00</span>
+      </div>
+    </div>
+
+    <div class="receipt-footer">
+      <strong>Thank You for Your Order!</strong>
+      <p>We appreciate your business. Enjoy your meal!</p>
+      <p class="thank-you">~ The Street Chef Team ~</p>
+      <p style="margin-top: 8px; font-size: 10px;">
+        🌟 Follow us: @The_street_chef_
+      </p>
+    </div>
+  </div>
+
+  <div class="modal-actions">
+    <button class="btn btn-pdf" onclick="exportPDF()">📄 Download PDF</button>
+    <button class="btn btn-png" onclick="exportPNG()">🖼️ Download Image</button>
+    <button class="btn btn-whatsapp" onclick="shareWhatsApp()">💬 Share via WhatsApp</button>
+  </div>
+</div>
+
+<!-- =============================================
+     LOADING SPINNER
+============================================= -->
+<div class="spinner-overlay" id="spinner-overlay">
+  <div class="spinner"></div>
+  <span>Processing...</span>
+</div>
+
+<!-- =============================================
+     TOAST NOTIFICATION
+============================================= -->
+<div class="toast" id="toast"></div>
+
+<!-- =============================================
+     JAVASCRIPT
+============================================= -->
+<script>
+  // State
+  let items = [];
+  let receiptCounter = 1001;
+
+  // Initialize
+  function init() {
+    addItem();
+    updateDisplay();
+  }
+
+  // Add item row
+  function addItem() {
+    const id = Date.now();
+    items.push({ id, name: '', qty: 1, price: 0 });
+    renderItems();
+    updateDisplay();
+  }
+
+  // Remove item
+  function removeItem(id) {
+    items = items.filter(item => item.id !== id);
+    renderItems();
+    updateDisplay();
+  }
+
+  // Update item
+  function updateItem(id, field, value) {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      item[field] = field === 'name' ? value : parseFloat(value) || 0;
+      updateDisplay();
+    }
+  }
+
+  // Render items
+  function renderItems() {
+    const list = document.getElementById('items-list');
+    list.innerHTML = items.map(item => `
+      <div class="item-row">
+        <input type="text" placeholder="Dish name" value="${item.name}" 
+               onchange="updateItem(${item.id}, 'name', this.value)" />
+        <input type="number" placeholder="Price" value="${item.price}" 
+               onchange="updateItem(${item.id}, 'price', this.value)" />
+        <button class="btn-remove" onclick="removeItem(${item.id})">✕</button>
+      </div>
+    `).join('');
+  }
+
+  // Calculate totals
+  function calculateTotals() {
+    const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    const tax = 0; // 0% tax
+    const total = subtotal + tax;
+    return { subtotal, tax, total };
+  }
+
+  // Update display
+  function updateDisplay() {
+    const { subtotal, tax, total } = calculateTotals();
+    
+    document.getElementById('subtotal-display').textContent = `₦${subtotal.toFixed(2)}`;
+    document.getElementById('item-count-display').textContent = items.length;
+    document.getElementById('tax-display').textContent = `₦${tax.toFixed(2)}`;
+    document.getElementById('grand-total-display').textContent = `₦${total.toFixed(2)}`;
+  }
+
+  // Preview receipt
+  function previewReceipt() {
+    if (items.length === 0) {
+      showToast('❌ Please add at least one item');
+      return;
+    }
+
+    const { subtotal, tax, total } = calculateTotals();
+    const customerName = document.getElementById('customer-name').value || 'Walk-in';
+    const customerPhone = document.getElementById('customer-phone').value || 'N/A';
+
+    // Update receipt
+    document.getElementById('receipt-id').textContent = String(receiptCounter++).padStart(4, '0');
+    document.getElementById('receipt-date').textContent = new Date().toLocaleDateString();
+    document.getElementById('receipt-customer-name').textContent = customerName;
+    document.getElementById('receipt-customer-phone').textContent = customerPhone;
+
+    const tbody = document.getElementById('receipt-items-tbody');
+    tbody.innerHTML = items.map(item => `
+      <tr>
+        <td>${item.name || 'Item'}</td>
+        <td>${item.qty}</td>
+        <td>₦${(item.qty * item.price).toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('receipt-subtotal').textContent = `₦${subtotal.toFixed(2)}`;
+    document.getElementById('receipt-tax').textContent = `₦${tax.toFixed(2)}`;
+    document.getElementById('receipt-grand-total').textContent = `₦${total.toFixed(2)}`;
+
+    // Show modal
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  // Close modal
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  // Export PDF
+  async function exportPDF() {
+    showSpinner(true);
+    try {
+      const element = document.getElementById('receipt-paper');
+      const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#fdf6b2' });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a6');
+      pdf.addImage(imgData, 'PNG', 0, 0, 105, 148);
+      pdf.save(`Receipt_${Date.now()}.pdf`);
+      showToast('✅ PDF downloaded successfully!');
+    } catch (err) {
+      showToast('❌ Error exporting PDF');
+      console.error(err);
+    } finally {
+      showSpinner(false);
+    }
+  }
+
+  // Export PNG
+  async function exportPNG() {
+    showSpinner(true);
+    try {
+      const element = document.getElementById('receipt-paper');
+      const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#fdf6b2' });
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `Receipt_${Date.now()}.png`;
+      link.click();
+      showToast('✅ Image downloaded successfully!');
+    } catch (err) {
+      showToast('❌ Error exporting image');
+      console.error(err);
+    } finally {
+      showSpinner(false);
+    }
+  }
+
+  // Share via WhatsApp
+  async function shareWhatsApp() {
+    if (items.length === 0) {
+      showToast('❌ Please add at least one item');
+      return;
+    }
+
+    showSpinner(true);
+    try {
+      const element = document.getElementById('receipt-paper');
+      const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#fdf6b2' });
+      const message = `Check out my receipt from The Street Chef! 🍽️\n\nWhatsApp: +234 806 610 0419\nLocation: No 4 Kanabe Close, Benin City`;
+      
+      // For mobile, open WhatsApp with message
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      showToast('✅ Opening WhatsApp...');
+    } catch (err) {
+      showToast('❌ Error sharing');
+      console.error(err);
+    } finally {
+      showSpinner(false);
+    }
+  }
+
+  // Reset form
+  function resetForm() {
+    if (confirm('Are you sure you want to clear everything?')) {
+      items = [];
+      document.getElementById('customer-name').value = '';
+      document.getElementById('customer-phone').value = '';
+      addItem();
+      updateDisplay();
+      showToast('🔄 Form cleared');
+    }
+  }
+
+  // Show spinner
+  function showSpinner(show) {
+    document.getElementById('spinner-overlay').classList.toggle('show', show);
+  }
+
+  // Show toast
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  // Initialize on load
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
